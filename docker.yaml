@@ -1,0 +1,118 @@
+# ARQUIVO COM FALHAS DE SEGURANÇA - APENAS PARA FINS EDUCACIONAIS
+# NÃO USE EM PRODUÇÃO!
+
+version: '3.8'
+
+services:
+  # FALHA 1: Serviço web sem autenticação
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"  # HTTP sem HTTPS
+      - "8080:8080"
+    environment:
+      # FALHA 2: Credenciais em variáveis de ambiente
+      - MYSQL_ROOT_PASSWORD=root123
+      - ADMIN_USER=admin
+      - ADMIN_PASS=admin
+      - SECRET_TOKEN=abc123def456
+    # FALHA 3: Sem resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0'  # sem limite!
+          memory: 0  # sem limite!
+    # FALHA 4: Container privilegiado
+    privileged: true
+    # FALHA 5: Acesso ao socket do Docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./app:/app
+    # FALHA 6: Network mode host
+    network_mode: host
+    
+  # FALHA 7: Database exposto publicamente
+  database:
+    image: postgres:latest
+    ports:
+      - "0.0.0.0:5432:5432"  # exposto para internet!
+    environment:
+      # FALHA 8: Senha padrão fraca
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=production
+    # FALHA 9: Sem volume persistente (dados podem ser perdidos)
+    # FALHA 10: Sem configuração de backup
+    
+  # FALHA 11: Redis sem senha
+  cache:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    # Sem --requirepass configurado!
+    
+  # FALHA 12: MongoDB sem autenticação
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      # FALHA 13: Credenciais fracas e previsíveis
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+    # FALHA 14: Sem SSL/TLS configurado
+    
+  # FALHA 15: Jenkins com portas admin expostas
+  jenkins:
+    image: jenkins/jenkins:lts
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      # FALHA 16: Desabilita segurança do Jenkins
+      - JENKINS_OPTS=--argumentsRealm.passwd.admin=admin --argumentsRealm.roles.admin=admin
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    volumes:
+      - /var/jenkins_home:/var/jenkins_home
+    user: root  # FALHA 17: rodando como root
+    
+  # FALHA 18: Aplicação com debug mode habilitado
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+      - "5858:5858"  # debug port exposta!
+    environment:
+      - NODE_ENV=development  # FALHA 19: env de dev em produção
+      - DEBUG=*  # FALHA 20: debug completo habilitado
+      - ENABLE_PROFILING=true
+      - API_KEY=sk_live_abc123def456ghi789
+      - SESSION_SECRET=mysessionsecret123
+      - ENCRYPTION_KEY=12345678901234567890123456789012
+    # FALHA 21: Sem healthcheck
+    # FALHA 22: Sem restart policy adequada
+    restart: "no"
+    
+# FALHA 23: Secrets em arquivo não criptografado
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt  # arquivo texto simples
+  api_key:
+    file: ./secrets/api_key.txt
+
+# FALHA 24: Network sem isolamento
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"  # inter-container communication aberto
+
+# FALHA 25: Volumes com permissões muito abertas
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /tmp  # usando /tmp como storage!
