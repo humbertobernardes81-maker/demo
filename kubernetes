@@ -1,0 +1,74 @@
+# ARQUIVO COM FALHAS DE SEGURANÇA - APENAS PARA FINS EDUCACIONAIS
+# NÃO USE EM PRODUÇÃO!
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # FALHA 1: Credenciais hardcoded em texto claro
+  database_url: "postgresql://admin:senha123@db.exemplo.com:5432/producao"
+  
+  # FALHA 2: Chaves API expostas
+  api_key: "sk-1234567890abcdefghijklmnopqrstuvwxyz"
+  secret_key: "my-super-secret-key-2024"
+  
+  # FALHA 3: Tokens de acesso em plaintext
+  github_token: "ghp_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890"
+  aws_access_key: "AKIAIOSFODNN7EXAMPLE"
+  aws_secret_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  
+  # FALHA 4: Credenciais de terceiros expostas
+  stripe_secret_key: "sk_live_51AbCdEfGhIjKlMnOpQrStUvWxYz"
+  sendgrid_api_key: "SG.1234567890abcdefghijklmnopqrstuvwxyz"
+  
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vulnerable-app
+spec:
+  # FALHA 5: Container rodando como root
+  containers:
+  - name: app
+    image: myapp:latest
+    securityContext:
+      runAsUser: 0  # rodando como root!
+      privileged: true  # modo privilegiado habilitado!
+      allowPrivilegeEscalation: true
+    
+    # FALHA 6: Variáveis de ambiente com segredos
+    env:
+    - name: DB_PASSWORD
+      value: "senhaDB123456"
+    - name: JWT_SECRET
+      value: "meu-jwt-secreto-super-importante"
+    - name: ADMIN_PASSWORD
+      value: "admin123"
+    
+    # FALHA 7: Portas inseguras expostas
+    ports:
+    - containerPort: 22  # SSH exposto
+    - containerPort: 3306  # MySQL exposto
+    - containerPort: 5432  # PostgreSQL exposto
+    - containerPort: 6379  # Redis exposto sem auth
+    
+    # FALHA 8: Volume montando diretório sensível do host
+    volumeMounts:
+    - name: host-root
+      mountPath: /host
+      readOnly: false  # acesso de escrita ao sistema host!
+  
+  volumes:
+  - name: host-root
+    hostPath:
+      path: /  # montando raiz do sistema!
+      type: Directory
+  
+  # FALHA 9: Sem resource limits (possível DoS)
+  # resources não definidos = sem limites!
+  
+  # FALHA 10: hostNetwork habilitado
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
